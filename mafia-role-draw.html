@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Who Are You? — Mafia Role Draw</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap');
+
+      :root {
+        --ink: #211c1a;
+        --muted: #756c68;
+        --paper: #f5efe5;
+        --card: #fffaf2;
+        --line: #ded2c2;
+        --red: #a9362c;
+        --red-dark: #7c211c;
+        --gold: #c89948;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        font-family: 'DM Sans', sans-serif;
+        background:
+          radial-gradient(circle at 12% 10%, rgba(200, 153, 72, .13), transparent 30%),
+          linear-gradient(rgba(255,255,255,.14) 1px, transparent 1px),
+          var(--paper);
+        background-size: auto, 100% 6px, auto;
+      }
+
+      .shell { width: min(1180px, calc(100% - 36px)); margin: auto; padding: 34px 0; }
+      header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+      .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+      .brand-mark { width: 39px; height: 39px; display: grid; place-items: center; border: 1px solid var(--ink); border-radius: 50%; font-family: serif; font-size: 21px; }
+      .round { color: var(--muted); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+
+      main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(310px, .85fr); gap: 22px; }
+      .panel { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 26px; background: rgba(255,250,242,.88); box-shadow: 0 18px 50px rgba(64,43,28,.08); }
+      .draw-panel { min-height: 690px; padding: 60px; display: flex; flex-direction: column; justify-content: center; }
+      .draw-panel::after { content: '♦'; position: absolute; right: -18px; bottom: -88px; font: 700 290px/1 serif; color: rgba(169,54,44,.045); transform: rotate(12deg); }
+      .eyebrow { display: flex; align-items: center; gap: 10px; color: var(--red); font-size: 12px; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
+      .eyebrow::before { content: ''; width: 34px; height: 2px; background: var(--red); }
+      h1 { max-width: 560px; margin: 20px 0 18px; font: 800 clamp(54px, 7vw, 92px)/.93 'Playfair Display', serif; letter-spacing: -.055em; }
+      .lede { max-width: 490px; margin: 0 0 38px; color: var(--muted); font-size: 17px; line-height: 1.65; }
+      .progress { display: flex; align-items: center; gap: 14px; margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+      .progress-track { width: 170px; height: 4px; overflow: hidden; border-radius: 99px; background: #e3d9cb; }
+      .progress-fill { width: 0; height: 100%; border-radius: inherit; background: var(--red); transition: width .35s ease; }
+      .primary { position: relative; z-index: 1; width: fit-content; min-width: 240px; border: 0; border-radius: 99px; padding: 17px 24px; color: white; background: var(--red); box-shadow: 0 10px 25px rgba(169,54,44,.23); font: 700 15px 'DM Sans'; cursor: pointer; transition: transform .2s, background .2s; }
+      .primary:hover { transform: translateY(-2px); background: var(--red-dark); }
+      .primary:disabled { cursor: not-allowed; box-shadow: none; opacity: .45; transform: none; }
+
+      .setup { padding: 32px; }
+      .setup h2 { margin: 0 0 5px; font: 700 30px 'Playfair Display', serif; }
+      .setup > p { margin: 0 0 28px; color: var(--muted); font-size: 14px; }
+      .counter { display: flex; justify-content: space-between; align-items: center; padding: 17px 0; border-top: 1px solid var(--line); }
+      .role-name { display: flex; align-items: center; gap: 13px; font-weight: 600; }
+      .role-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; background: #eee5d8; font-size: 18px; }
+      .stepper { display: flex; align-items: center; gap: 15px; }
+      .stepper button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; color: var(--ink); background: transparent; font-size: 19px; cursor: pointer; }
+      .stepper button:hover { border-color: var(--red); color: var(--red); }
+      .value { width: 22px; text-align: center; font-weight: 700; }
+      .total { margin-top: 8px; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 17px; color: white; background: var(--ink); }
+      .total small { display: block; margin-top: 3px; color: #bdb5b1; }
+      .total strong { font: 700 34px 'Playfair Display', serif; }
+      .error { min-height: 20px; margin: 13px 2px 0; color: var(--red); font-size: 13px; }
+      .reset { width: 100%; margin-top: 11px; border: 0; color: var(--muted); background: none; font-weight: 600; cursor: pointer; }
+
+      dialog { width: min(430px, calc(100% - 30px)); padding: 0; border: 0; border-radius: 27px; color: var(--ink); background: var(--card); box-shadow: 0 30px 100px rgba(27,18,14,.4); }
+      dialog::backdrop { background: rgba(31,24,21,.7); backdrop-filter: blur(5px); }
+      .reveal { padding: 40px; text-align: center; }
+      .reveal-index { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+      .big-icon { width: 92px; height: 92px; margin: 25px auto 18px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: #f0e7da; font-size: 42px; }
+      .reveal h3 { margin: 0 0 8px; font: 800 48px 'Playfair Display', serif; }
+      .reveal p { margin: 0 auto 28px; max-width: 310px; color: var(--muted); line-height: 1.55; }
+      .reveal .primary { width: 100%; }
+      .privacy { margin-top: 14px; color: var(--red); font-size: 12px; font-weight: 700; }
+
+      @media (max-width: 800px) {
+        .shell { width: min(100% - 24px, 600px); padding: 20px 0; }
+        main { grid-template-columns: 1fr; }
+        .draw-panel { min-height: auto; padding: 54px 28px; }
+        .setup { padding: 26px 22px; }
+        header { margin-bottom: 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="brand"><span class="brand-mark">M</span> Night Council</div>
+        <div class="round">Private role draw</div>
+      </header>
+
+      <main>
+        <section class="panel draw-panel">
+          <div class="eyebrow">Trust no one</div>
+          <h1>Who<br />are you?</h1>
+          <p class="lede">Pass the device. Each player privately draws one identity—then hides it before the next person takes their turn.</p>
+          <div class="progress">
+            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+            <span id="progressText">Ready to begin</span>
+          </div>
+          <button class="primary" id="drawButton">Draw my secret role →</button>
+        </section>
+
+        <aside class="panel setup">
+          <h2>Build the town</h2>
+          <p>Choose how many of each identity will play.</p>
+          <div id="counters"></div>
+          <div class="total">
+            <div><b>Total players</b><small>All assigned roles</small></div>
+            <strong id="totalPlayers">8</strong>
+          </div>
+          <div class="error" id="error"></div>
+          <button class="reset" id="resetButton">↻ Shuffle & restart draw</button>
+        </aside>
+      </main>
+    </div>
+
+    <dialog id="roleDialog">
+      <div class="reveal">
+        <div class="reveal-index" id="playerNumber">Player 1 of 8</div>
+        <div class="big-icon" id="revealIcon">♠</div>
+        <h3 id="revealName">Mafia</h3>
+        <p id="revealDescription"></p>
+        <button class="primary" id="hideButton">Hide role & pass device</button>
+        <div class="privacy">Keep this screen secret</div>
+      </div>
+    </dialog>
+
+    <script>
+      const roles = [
+        { id: 'mafia', name: 'Mafia', icon: '♠', count: 2, min: 1, text: 'Work in the shadows. At night, choose a player to eliminate.' },
+        { id: 'doctor', name: 'Doctor', icon: '✚', count: 1, min: 0, text: 'Protect one player each night. Choose carefully—yourself included.' },
+        { id: 'inspector', name: 'Inspector', icon: '⌕', count: 1, min: 0, text: 'Investigate one player each night and learn whether they are Mafia.' },
+        { id: 'villager', name: 'Villager', icon: '♙', count: 4, min: 1, text: 'Observe, debate and vote. Find the Mafia before they take the town.' }
+      ];
+
+      let deck = [];
+      let drawn = 0;
+      let locked = false;
+      const counters = document.querySelector('#counters');
+      const totalPlayers = document.querySelector('#totalPlayers');
+      const drawButton = document.querySelector('#drawButton');
+      const resetButton = document.querySelector('#resetButton');
+      const progressFill = document.querySelector('#progressFill');
+      const progressText = document.querySelector('#progressText');
+      const error = document.querySelector('#error');
+      const dialog = document.querySelector('#roleDialog');
+
+      function total() { return roles.reduce((sum, role) => sum + role.count, 0); }
+      function shuffle(items) {
+        for (let i = items.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [items[i], items[j]] = [items[j], items[i]];
+        }
+        return items;
+      }
+
+      function renderCounters() {
+        counters.innerHTML = roles.map(role => `
+          <div class="counter">
+            <div class="role-name"><span class="role-icon">${role.icon}</span>${role.name}</div>
+            <div class="stepper">
+              <button aria-label="Remove ${role.name}" data-role="${role.id}" data-change="-1">−</button>
+              <span class="value">${role.count}</span>
+              <button aria-label="Add ${role.name}" data-role="${role.id}" data-change="1">+</button>
+            </div>
+          </div>`).join('');
+        totalPlayers.textContent = total();
+      }
+
+      function buildDeck() {
+        deck = shuffle(roles.flatMap(role => Array.from({ length: role.count }, () => role)));
+        drawn = 0;
+        locked = true;
+        updateProgress();
+        error.textContent = '';
+      }
+
+      function updateProgress() {
+        const count = total();
+        progressFill.style.width = count ? `${(drawn / count) * 100}%` : '0%';
+        progressText.textContent = drawn === 0 ? 'Ready to begin' : drawn < count ? `${drawn} of ${count} roles claimed` : 'Every role has been claimed';
+        drawButton.textContent = drawn < count ? `Draw player ${drawn + 1}'s role →` : 'All roles drawn';
+        drawButton.disabled = drawn >= count;
+      }
+
+      counters.addEventListener('click', event => {
+        const button = event.target.closest('button[data-role]');
+        if (!button) return;
+        const role = roles.find(item => item.id === button.dataset.role);
+        const next = role.count + Number(button.dataset.change);
+        if (locked && drawn > 0) { error.textContent = 'Restart the draw before changing the town.'; return; }
+        if (next >= role.min && next <= 20 && total() + Number(button.dataset.change) <= 40) {
+          role.count = next;
+          locked = false;
+          renderCounters();
+          updateProgress();
+        }
+      });
+
+      drawButton.addEventListener('click', () => {
+        if (total() < 3) { error.textContent = 'Add at least 3 players to begin.'; return; }
+        if (!locked) buildDeck();
+        const role = deck[drawn];
+        document.querySelector('#playerNumber').textContent = `Player ${drawn + 1} of ${total()}`;
+        document.querySelector('#revealIcon').textContent = role.icon;
+        document.querySelector('#revealName').textContent = role.name;
+        document.querySelector('#revealDescription').textContent = role.text;
+        dialog.showModal();
+      });
+
+      document.querySelector('#hideButton').addEventListener('click', () => {
+        dialog.close();
+        drawn++;
+        updateProgress();
+      });
+
+      resetButton.addEventListener('click', () => { buildDeck(); });
+      dialog.addEventListener('cancel', event => event.preventDefault());
+      renderCounters();
+      updateProgress();
+    </script>
+  </body>
+</html>
