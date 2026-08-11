@@ -67,17 +67,24 @@
       .total small { display: block; margin-top: 3px; color: #bdb5b1; }
       .total strong { font: 700 34px 'Playfair Display', serif; }
       .error { min-height: 20px; margin: 13px 2px 0; color: var(--red); font-size: 13px; }
-      .reset { width: 100%; margin-top: 11px; border: 0; color: var(--muted); background: none; font-weight: 600; cursor: pointer; }
+      .reset { width: 100%; margin-top: 14px; padding: 13px 18px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: transparent; font: 700 14px 'DM Sans'; cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+      .reset:hover { border-color: var(--red); color: var(--red); background: rgba(169,54,44,.05); }
 
       dialog { width: min(430px, calc(100% - 30px)); padding: 0; border: 0; border-radius: 27px; color: var(--ink); background: var(--card); box-shadow: 0 30px 100px rgba(27,18,14,.4); }
       dialog::backdrop { background: rgba(31,24,21,.7); backdrop-filter: blur(5px); }
       .reveal { padding: 40px; text-align: center; }
       .reveal-index { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+      .role-state { height: 420px; display: flex; flex-direction: column; justify-content: flex-start; }
       .big-icon { width: 92px; height: 92px; margin: 25px auto 18px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: #f0e7da; font-size: 42px; }
       .reveal h3 { margin: 0 0 8px; font: 800 48px 'Playfair Display', serif; }
       .reveal p { margin: 0 auto 28px; max-width: 310px; color: var(--muted); line-height: 1.55; }
+      .role-state > p { width: 100%; min-height: 75px; }
       .reveal .primary { width: 100%; }
       .privacy { margin-top: 14px; color: var(--red); font-size: 12px; font-weight: 700; }
+      .hold-instruction { min-height: 52px; margin-top: 4px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 15px; color: var(--muted); background: #f5ede2; font-size: 14px; font-weight: 600; }
+      .hold-instruction kbd { margin: 0 4px; padding: 4px 10px; border: 1px solid #cbbdac; border-bottom-width: 3px; border-radius: 7px; color: var(--ink); background: var(--card); font: 700 13px 'DM Sans'; }
+      #nextButton { margin-top: 14px; }
+      [hidden] { display: none !important; }
 
       @media (max-width: 800px) {
         .shell { width: min(100% - 24px, 600px); padding: 20px 0; }
@@ -124,11 +131,19 @@
     <dialog id="roleDialog">
       <div class="reveal">
         <div class="reveal-index" id="playerNumber">Player 1 of 8</div>
-        <div class="big-icon" id="revealIcon">♠</div>
-        <h3 id="revealName">Mafia</h3>
-        <p id="revealDescription"></p>
-        <button class="primary" id="hideButton">Hide role & pass device</button>
-        <div class="privacy">Keep this screen secret</div>
+        <div class="role-state" id="hiddenRole">
+          <div class="big-icon">?</div>
+          <h3>Role hidden</h3>
+          <p>Make sure nobody else can see the screen before revealing your role.</p>
+          <div class="hold-instruction">Press and hold <kbd>Space</kbd> to show role</div>
+          <button class="primary" id="nextButton" aria-keyshortcuts="Escape" disabled>Hide role & pass device →</button>
+        </div>
+        <div class="role-state" id="revealedRole" hidden>
+          <div class="big-icon" id="revealIcon"></div>
+          <h3 id="revealName"></h3>
+          <p id="revealDescription"></p>
+          <div class="privacy">Release Space to hide</div>
+        </div>
       </div>
     </dialog>
 
@@ -143,6 +158,8 @@
       let deck = [];
       let drawn = 0;
       let locked = false;
+      let pendingRole = null;
+      let spaceHeld = false;
       const counters = document.querySelector('#counters');
       const totalPlayers = document.querySelector('#totalPlayers');
       const drawButton = document.querySelector('#drawButton');
@@ -151,6 +168,9 @@
       const progressText = document.querySelector('#progressText');
       const error = document.querySelector('#error');
       const dialog = document.querySelector('#roleDialog');
+      const hiddenRole = document.querySelector('#hiddenRole');
+      const revealedRole = document.querySelector('#revealedRole');
+      const nextButton = document.querySelector('#nextButton');
 
       function total() { return roles.reduce((sum, role) => sum + role.count, 0); }
       function shuffle(items) {
@@ -207,22 +227,67 @@
       drawButton.addEventListener('click', () => {
         if (total() < 3) { error.textContent = 'Add at least 3 players to begin.'; return; }
         if (!locked) buildDeck();
-        const role = deck[drawn];
+        pendingRole = deck[drawn];
         document.querySelector('#playerNumber').textContent = `Player ${drawn + 1} of ${total()}`;
-        document.querySelector('#revealIcon').textContent = role.icon;
-        document.querySelector('#revealName').textContent = role.name;
-        document.querySelector('#revealDescription').textContent = role.text;
+        hiddenRole.hidden = false;
+        revealedRole.hidden = true;
+        nextButton.disabled = true;
         dialog.showModal();
+        dialog.focus();
       });
 
-      document.querySelector('#hideButton').addEventListener('click', () => {
+      function revealRole() {
+        if (!pendingRole || !dialog.open) return;
+        document.querySelector('#revealIcon').textContent = pendingRole.icon;
+        document.querySelector('#revealName').textContent = pendingRole.name;
+        document.querySelector('#revealDescription').textContent = pendingRole.text;
+        hiddenRole.hidden = true;
+        revealedRole.hidden = false;
+      }
+
+      function hideRole() {
+        if (!dialog.open || revealedRole.hidden) return;
+        revealedRole.hidden = true;
+        hiddenRole.hidden = false;
+        nextButton.disabled = false;
+        nextButton.focus();
+      }
+
+      window.addEventListener('keydown', event => {
+        if (event.code !== 'Space' || event.repeat || !dialog.open) return;
+        event.preventDefault();
+        spaceHeld = true;
+        revealRole();
+      });
+
+      window.addEventListener('keyup', event => {
+        if (event.code !== 'Space' || !spaceHeld) return;
+        event.preventDefault();
+        spaceHeld = false;
+        hideRole();
+      });
+
+      window.addEventListener('blur', () => {
+        if (!spaceHeld) return;
+        spaceHeld = false;
+        hideRole();
+      });
+
+      nextButton.addEventListener('click', () => {
         dialog.close();
+        pendingRole = null;
+        document.querySelector('#revealIcon').textContent = '';
+        document.querySelector('#revealName').textContent = '';
+        document.querySelector('#revealDescription').textContent = '';
         drawn++;
         updateProgress();
       });
 
       resetButton.addEventListener('click', () => { buildDeck(); });
-      dialog.addEventListener('cancel', event => event.preventDefault());
+      dialog.addEventListener('cancel', event => {
+        event.preventDefault();
+        if (!nextButton.disabled) nextButton.click();
+      });
       renderCounters();
       updateProgress();
     </script>
